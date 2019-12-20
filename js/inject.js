@@ -1,0 +1,3 @@
+function exportArticle() {
+    alert('export');
+}
