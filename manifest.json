@@ -19,17 +19,21 @@
     "default_title": "文章内容提取",
     "default_popup": "./html/index.html"
   },
+  "web_accessible_resources": [
+    "js/export/csdn.js"
+  ],
   "content_scripts": [
     {
       "matches": [
-        "https://blog.csdn.net/*" //CSDN
+        "https://blog.csdn.net/*"
+        //CSDN
       ],
       "js": [
-        "./js/jquery-2.2.1.js",
-        "./js/csdn.js",
-        "./js/content.js"
+        "./js/baseJs/jquery-2.2.1.js",
+        "./js/contentJs/csdn.js",
+        "./js/contentJs/content.js"
       ],
-      "css":[
+      "css": [
         "./css/bootstrap.min.css"
       ],
       "run_at": "document_end"
@@ -37,6 +41,5 @@
   ],
   "permissions": [
     "storage"
-  ],
-  "web_accessible_resources": ["./js/inject.js"]
+  ]
 }
