@@ -43,4 +43,5 @@ function importLib() { // 引入三方库
     injectCustomJs('js/baseJs/turndown.js'); // html to markdown
 }
 
-main(); // 入口函数
+
+window.onload = main(); // 入口函数
