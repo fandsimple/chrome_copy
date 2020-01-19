@@ -20,23 +20,27 @@
     "default_popup": "./html/index.html"
   },
   "web_accessible_resources": [
+    "js/baseJs/jquery-2.2.1.js",
+    "js/baseJs/turndown.js",
     "js/export/csdn.js",
     "js/export/juejin.js",
-    "js/baseJs/turndown.js",
-    "js/baseJs/jquery-2.2.1.js"
+    "js/export/bokeyuan.js"
   ],
   "content_scripts": [
     {
       "matches": [
+        // CSDN
         "https://blog.csdn.net/*",
-        //CSDN
-        "https://juejin.im/post/*"
-        // juejin
+        // 掘金
+        "https://juejin.im/post/*",
+        // 博客园
+        "https://www.cnblogs.com/*"
       ],
       "js": [
         "./js/baseJs/jquery-2.2.1.js",
         "./js/contentJs/csdn.js",
         "./js/contentJs/juejin.js",
+        "./js/contentJs/bokeyuan.js",
         "./js/contentJs/content.js"
       ],
       "css": [

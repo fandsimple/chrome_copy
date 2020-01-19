@@ -16,6 +16,13 @@ function main() {
                 juejin();
             }
         });
+    } else if (document.URL.indexOf('cnblogs.com') >= 0) { // 博客园
+        chrome.storage.sync.get({bokeyuanFlag: 'off'}, function (data) {
+            if (data.bokeyuanFlag == 'on') {
+                injectCustomJs("js/export/bokeyuan.js"); // 向页面中注入js文件，可以进行回调
+                bokeyuan();
+            }
+        });
     }
 }
 
