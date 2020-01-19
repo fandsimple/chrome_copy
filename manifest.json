@@ -20,25 +20,32 @@
     "default_popup": "./html/index.html"
   },
   "web_accessible_resources": [
-    "js/export/csdn.js"
+    "js/export/csdn.js",
+    "js/export/juejin.js",
+    "js/baseJs/turndown.js",
+    "js/baseJs/jquery-2.2.1.js"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://blog.csdn.net/*"
+        "https://blog.csdn.net/*",
         //CSDN
+        "https://juejin.im/post/*"
+        // juejin
       ],
       "js": [
         "./js/baseJs/jquery-2.2.1.js",
         "./js/contentJs/csdn.js",
+        "./js/contentJs/juejin.js",
         "./js/contentJs/content.js"
       ],
       "css": [
         "./css/bootstrap.min.css"
-      ],
-      "run_at": "document_end"
+      ]
+//            "run_at": "document_end"
     }
   ],
+  //  "content_security_policy": "script-src 'self' https://unpkg.com/turndown@5.0.3/dist/turndown.js; object-src 'self'",
   "permissions": [
     "storage"
   ]

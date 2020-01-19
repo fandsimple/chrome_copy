@@ -1,7 +1,7 @@
 function exportArticle() {
-    console.log('csdn exportArticle');
-    var title = '# ' +  $('div.article-title-box h1').text();
-    var content = $('div#article_content').html();
+    console.log('juejin exportArticle');
+    var title = '# ' +  $('h1.article-title').text();
+    var content = $('div.article-content').html();
     var turndownService = new window.TurndownService();
     var markdown = turndownService.turndown(content);
     markdown = title + '\n' + markdown;
