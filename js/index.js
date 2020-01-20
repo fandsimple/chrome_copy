@@ -68,7 +68,7 @@ chrome.storage.sync.get({jianshuFlag: 'off'}, function (data) { //简书
     if (data.jianshuFlag == 'on') {
         $('input[name="jianshu"]').bootstrapToggle('on');
     } else {
-        $('input[name="简书"]').bootstrapToggle('off');
+        $('input[name="jianshu"]').bootstrapToggle('off');
     }
 
     // 简书
