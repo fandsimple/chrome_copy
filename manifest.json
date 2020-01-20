@@ -24,7 +24,8 @@
     "js/baseJs/turndown.js",
     "js/export/csdn.js",
     "js/export/juejin.js",
-    "js/export/bokeyuan.js"
+    "js/export/bokeyuan.js",
+    "js/export/jianshu.js"
   ],
   "content_scripts": [
     {
@@ -34,13 +35,16 @@
         // 掘金
         "https://juejin.im/post/*",
         // 博客园
-        "https://www.cnblogs.com/*"
+        "https://www.cnblogs.com/*",
+        // 简书
+        "https://www.jianshu.com/*"
       ],
       "js": [
         "./js/baseJs/jquery-2.2.1.js",
         "./js/contentJs/csdn.js",
         "./js/contentJs/juejin.js",
         "./js/contentJs/bokeyuan.js",
+        "./js/contentJs/jianshu.js",
         "./js/contentJs/content.js"
       ],
       "css": [

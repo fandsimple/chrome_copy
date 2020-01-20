@@ -23,6 +23,13 @@ function main() {
                 bokeyuan();
             }
         });
+    } else if (document.URL.indexOf('jianshu.com') >= 0) { // 简书
+        chrome.storage.sync.get({jianshuFlag: 'off'}, function (data) {
+            if (data.jianshuFlag == 'on') {
+                injectCustomJs("js/export/jianshu.js"); // 向页面中注入js文件，可以进行回调
+                jianshu();
+            }
+        });
     }
 }
 

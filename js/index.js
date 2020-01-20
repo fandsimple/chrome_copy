@@ -64,3 +64,26 @@ chrome.storage.sync.get({bokeyuanFlag: 'off'}, function (data) { //博客园
 
 });
 
+chrome.storage.sync.get({jianshuFlag: 'off'}, function (data) { //简书
+    if (data.jianshuFlag == 'on') {
+        $('input[name="jianshu"]').bootstrapToggle('on');
+    } else {
+        $('input[name="简书"]').bootstrapToggle('off');
+    }
+
+    // 简书
+    $('input[name="jianshu"]').change(function () {
+        chrome.storage.sync.get({jianshuFlag: 'off'}, function (data) {
+            if (data.jianshuFlag == 'on') {
+                chrome.storage.sync.set({jianshuFlag: 'off'}, function () {
+                });
+            } else {
+                chrome.storage.sync.set({jianshuFlag: 'on'}, function () {
+                });
+            }
+        });
+    });
+
+});
+
+
