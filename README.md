@@ -72,6 +72,9 @@
 - 作者微信如下，欢迎骚扰。
 
   ![](https://github.com/fandsimple/chrome_copy/blob/master/readmeImg/WechatIMG2099.png)
+  
+## 关注微信公众号，发送项目两个字，获取更多有趣的项目。
+![gongzonghao](https://github.com/fandsimple/src/blob/master/img/gongzonghao.jpeg)
 
   
 
