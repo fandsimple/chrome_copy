@@ -38,6 +38,9 @@
         "https://www.cnblogs.com/*",
         // 简书
         "https://www.jianshu.com/*"
+
+        // 携程 todo 有防注入检测
+//        "https://hotels.ctrip.com/hotel/*"
       ],
       "js": [
         "./js/baseJs/jquery-2.2.1.js",
@@ -45,12 +48,13 @@
         "./js/contentJs/juejin.js",
         "./js/contentJs/bokeyuan.js",
         "./js/contentJs/jianshu.js",
+//        "./js/contentJs/xiecheng.js",
         "./js/contentJs/content.js"
       ],
       "css": [
         "./css/bootstrap.min.css"
-      ]
-//            "run_at": "document_end"
+      ],
+      "run_at": "document_end"
     }
   ],
   //  "content_security_policy": "script-src 'self' https://unpkg.com/turndown@5.0.3/dist/turndown.js; object-src 'self'",
@@ -58,3 +62,5 @@
     "storage"
   ]
 }
+
+

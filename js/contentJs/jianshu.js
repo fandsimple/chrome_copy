@@ -2,10 +2,7 @@
 
 function jianshu() {
     // 创建导出按钮
-    addButton();
+    $button = $('<div style="height: 100px; width: 200px; position: fixed;top: 100px; right: 10px;"><button class="btn btn-success" id="importButton">导出文章</button></div>');
+    $("body").after($button);
 }
 
-function addButton() {
-    $button = $('<button class="btn btn-success" id="importButton">导出文章</button>');
-    $("h1._1RuRku").after($button);
-}
