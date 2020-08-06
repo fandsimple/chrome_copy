@@ -87,3 +87,26 @@ chrome.storage.sync.get({jianshuFlag: 'off'}, function (data) { //简书
 });
 
 
+chrome.storage.sync.get({dgstackFlag: 'off'}, function (data) { //简书
+    if (data.dgstackFlag == 'on') {
+        $('input[name="dgstack"]').bootstrapToggle('on');
+    } else {
+        $('input[name="dgstack"]').bootstrapToggle('off');
+    }
+
+    // 简书
+    $('input[name="dgstack"]').change(function () {
+        chrome.storage.sync.get({dgstackFlag: 'off'}, function (data) {
+            if (data.dgstackFlag == 'on') {
+                chrome.storage.sync.set({dgstackFlag: 'off'}, function () {
+                });
+            } else {
+                chrome.storage.sync.set({dgstackFlag: 'on'}, function () {
+                });
+            }
+        });
+    });
+
+});
+
+

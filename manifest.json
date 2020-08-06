@@ -25,7 +25,8 @@
     "js/export/csdn.js",
     "js/export/juejin.js",
     "js/export/bokeyuan.js",
-    "js/export/jianshu.js"
+    "js/export/jianshu.js",
+    "js/export/dgstack.js"
   ],
   "content_scripts": [
     {
@@ -37,10 +38,9 @@
         // 博客园
         "https://www.cnblogs.com/*",
         // 简书
-        "https://www.jianshu.com/*"
-
-        // 携程 todo 有防注入检测
-//        "https://hotels.ctrip.com/hotel/*"
+        "https://www.jianshu.com/*",
+        // dgstack
+        "https://www.dgstack.cn/*"
       ],
       "js": [
         "./js/baseJs/jquery-2.2.1.js",
@@ -48,8 +48,9 @@
         "./js/contentJs/juejin.js",
         "./js/contentJs/bokeyuan.js",
         "./js/contentJs/jianshu.js",
-//        "./js/contentJs/xiecheng.js",
-        "./js/contentJs/content.js"
+        "./js/contentJs/content.js",
+        "./js/contentJs/dgstack.js"
+
       ],
       "css": [
         "./css/bootstrap.min.css"

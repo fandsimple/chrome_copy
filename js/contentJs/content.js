@@ -30,6 +30,13 @@ function main() {
                 jianshu();
             }
         });
+    } else if (document.URL.indexOf('dgstack.cn') >= 0) { // 简书
+        chrome.storage.sync.get({dgstackFlag: 'off'}, function (data) {
+            if (data.dgstackFlag == 'on') {
+                injectCustomJs("js/export/dgstack.js"); // 向页面中注入js文件，可以进行回调
+                dgstack();
+            }
+        });
     }
 }
 
