@@ -37,6 +37,17 @@ function main() {
                 dgstack();
             }
         });
+    } else if (document.URL.indexOf('wenku.baidu.com') >= 0) { // 百度文库
+        chrome.storage.sync.get({bdwkFlag: 'off'}, function (data) {
+            if (data.bdwkFlag == 'on') {
+                injectCustomJs("js/export/bdwk.js"); // 向页面中注入js文件，可以进行回调
+                bdwk();
+            }
+        });
+    } else if (document.URL.indexOf('127.0.0.1:8000/') >= 0) { // 测试
+
+        injectCustomJs("js/export/local.js"); // 向页面中注入js文件，可以进行回调
+
     }
 }
 
@@ -45,17 +56,19 @@ function injectCustomJs(jsPath) { // 注入函数
     var temp = document.createElement('script');
     temp.setAttribute('type', 'text/javascript');
     temp.src = chrome.extension.getURL(jsPath);
-    temp.onload = function () {
-        // 放在页面不好看，执行完后移除掉
-        this.parentNode.removeChild(this);
-    };
+    console.log(temp.src, '路径');
+    // temp.onload = function () {
+    //     // 放在页面不好看，执行完后移除掉
+    //     this.parentNode.removeChild(this);
+    // };
     document.head.appendChild(temp);
 }
 
 function importLib() { // 引入三方库
     injectCustomJs('js/baseJs/jquery-2.2.1.js'); // jquery
     injectCustomJs('js/baseJs/turndown.js'); // html to markdown
+    injectCustomJs('js/baseJs/FileSaver.js'); // html to word
+    injectCustomJs('js/baseJs/jquery.wordexport.js'); // html to word
 }
-
 
 window.onload = main(); // 入口函数

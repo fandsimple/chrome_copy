@@ -1,0 +1,501 @@
+
+
+
+
+
+
+    <style>
+        #content {
+            position: relative;
+        }
+
+        .object-tools {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            height: 50px;
+            z-index: 2;
+        }
+
+        .object-tools .import_link, .object-tools .export_link {
+            color: white !important;
+        }
+
+    </style>
+
+        <ul class="object-tools" style="display: none;">
+
+
+
+
+
+        </ul>
+
+
+    <div id="content-main">
+
+
+        <div class="module filtered" id="changelist">
+
+
+
+    <script type="text/javascript">
+        function preSubmit() {
+            $('#changelist-search').find("input[name!='']").each(function () {
+                if ($(this).val() == '') {
+                    $(this).removeAttr('name');
+                }
+            });
+        }
+    </script>
+
+        <script type="text/javascript">var searchDates={}</script>
+
+    <!-- search_form.html -->
+    <div id="toolbar"><form id="changelist-search" method="get" onsubmit="preSubmit(this)"><input type="hidden" name="p" value=""> <div class="simpleui-form"><div class="simpleui-form-item el-input el-input--prefix el-input--suffix"><!----><input type="text" autocomplete="off" name="q" placeholder="搜索最新数据相关内容" class="el-input__inner"><span class="el-input__prefix"><i class="el-input__icon el-icon-search"></i></span><!----><!----><!----></div> <input type="hidden" name="sourceName"> <div class="el-select simpleui-form-item"><!----><div class="el-input el-input--suffix"><!----><input type="text" readonly="readonly" autocomplete="off" placeholder="数据源名称" class="el-input__inner"><!----><span class="el-input__suffix"><span class="el-input__suffix-inner"><i class="el-select__caret el-input__icon el-icon-arrow-up"></i><!----><!----><!----><!----><!----></span><!----></span><!----><!----></div><div class="el-select-dropdown el-popper" style="display: none; min-width: 186px;"><div class="el-scrollbar" style=""><div class="el-select-dropdown__wrap el-scrollbar__wrap el-scrollbar__wrap--hidden-default"><ul class="el-scrollbar__view el-select-dropdown__list"><!----><li class="el-select-dropdown__item"><span>auscert</span></li> <li class="el-select-dropdown__item"><span>ibm</span></li> <li class="el-select-dropdown__item"><span>nvd_nist</span></li></ul></div><div class="el-scrollbar__bar is-horizontal"><div class="el-scrollbar__thumb" style="transform: translateX(0%);"></div></div><div class="el-scrollbar__bar is-vertical"><div class="el-scrollbar__thumb" style="transform: translateY(0%);"></div></div></div><!----></div></div> <button type="button" class="el-button el-button--primary"><!----><i class="el-icon-search"></i><span>搜索</span></button></div></form></div>
+
+    <script type="text/javascript">
+        window.getLanuage = function (key) {
+            console.log(key)
+            if (!window.Lanuages) {
+                return "";
+            }
+            var val = Lanuages[key];
+            if (!val || val == "") {
+                val = key;
+            }
+            return val
+        }
+        Date.prototype.format = function (fmt) {
+            var o = {
+                "M+": this.getMonth() + 1,                 //月份
+                "d+": this.getDate(),                    //日
+                "h+": this.getHours(),                   //小时
+                "m+": this.getMinutes(),                 //分
+                "s+": this.getSeconds(),                 //秒
+                "q+": Math.floor((this.getMonth() + 3) / 3), //季度
+                "S": this.getMilliseconds()             //毫秒
+            };
+            if (/(y+)/.test(fmt))
+                fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+            for (var k in o)
+                if (new RegExp("(" + k + ")").test(fmt))
+                    fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+            return fmt;
+        }
+        var searchApp = new Vue({
+            el: '#toolbar',
+            data: {
+                placeholder: '搜索最新数据相关内容',
+                searchInput: '',
+
+
+
+                            'sourceName': '',
+
+
+
+            },
+            created: function () {
+                var self = this;
+                var date_field = [];
+
+
+
+
+
+                $('.form-params').each(function () {
+                    var key = $(this).attr('data-name');
+                    var value = $(this).val();
+                    self[key] = value;
+                });
+                try {
+                    date_field.forEach(key => {
+                        var start = self[key + "__gte"];
+                        var end = self[key + "__lt"];
+                        self[key] = [start, end];
+                    });
+                } catch (e) {
+                    console.warn('日期值回显失败，也许是django版本问题，请至github报告此问题：https://github.com/newpanjing/simpleui/issues');
+                }
+
+            },
+            watch: {
+
+
+
+
+
+            },
+            methods: {
+
+                changeDate: function (d1, d2) {
+                    console.log(arguments)
+                },
+                changeDatetime: function (d1, d2) {
+                    console.log(arguments)
+                },
+                formSubmit: function () {
+                    preSubmit();
+                    document.getElementById('changelist-search').submit();
+                }
+            }
+        })
+
+    </script>
+
+
+
+
+
+            <form id="changelist-form" method="post" novalidate=""><input type="hidden" name="csrfmiddlewaretoken" value="rU7jT8HaisCisp6vqROxXUUawApbT39HWaw3fRP35B367zEGzgKAJZ5n0JsrCjlb">
+
+
+
+
+
+
+
+<div class="actions"><input type="hidden" name="action" value=""> <button type="button" class="el-button el-button--primary" url="/adminspiderTask/lastestdata/add/"><!----><i class="el-icon-plus"></i><span>
+            增加
+        </span></button> <button type="button" class="el-button el-button--danger" data-name="delete_selected"><!----><i class="el-icon-delete"></i><span>删除</span></button>  <span data-actions-icnt="3" class="action-counter" style="display: inline;">3 个中 0 个被选</span> <div class="el-button-group btn-group"><a href="javascript:;" class="el-button el-button--default"><span class="el-icon-search"></span></a> <a href="javascript:;" class="el-button el-button--default"><span class="el-icon-refresh"></span></a> <a href="javascript:;" class="el-button el-button--default"><span class="el-icon-news"></span></a></div></div>
+<script type="text/javascript" src="/static/admin/simpleui-x/automatic/dicts.js"></script>
+<script type="text/javascript" src="/static/admin/simpleui-x/automatic/segment.js"></script>
+<script type="text/javascript">
+
+
+
+    var _action = new Vue({
+        el: '.actions',
+        data: {
+            select_across: 0,
+            file_format: 1,
+            show:true,
+            options: [{
+                value: 0,
+                label: 'csv'
+            }, {
+                value: 1,
+                label: 'xls'
+            }, {
+                value: 2,
+                label: 'xlsx'
+            }, {
+                value: 3,
+                label: 'tsv'
+            }, {
+                value: 4,
+                label: 'ods'
+            }, {
+                value: 5,
+                label: 'json'
+            }, {
+                value: 6,
+                label: 'yaml'
+            }, {
+                value: 7,
+                label: 'html'
+            }],
+            customButton:{"delete_selected": {"short_description": "\u5220\u9664\u6240\u9009\u7684 %(verbose_name_plural)s"}},
+            exts:[]
+        },
+        created(){
+            if (localStorage && typeof (localStorage.searchStatus) != 'undefined') {
+                this.show = localStorage.searchStatus=='true';
+            }
+        },
+        watch:{
+            'show':function(newValue){
+                obj=document.querySelector('.xfull')
+                if(!newValue){
+                    //隐藏
+                    document.getElementById('toolbar').style.display = 'none';
+                    if(obj) {
+                        obj.style.display = 'none';
+                    }
+                }else{
+                    //显示
+                    document.getElementById('toolbar').style.display = 'inherit';
+                    if(obj){
+                        obj.style.display = 'inherit';
+                    }
+                }
+                if(localStorage){
+                    localStorage['searchStatus']=newValue;
+                }
+            }
+        },
+        methods: {
+            searchDisplay:function(){
+
+                this.show = !this.show;
+
+            },
+            reload:function(){
+              window.location.reload()
+            },
+            openNewPage:function(){
+                window.open(window.location.href)
+            },
+            getIcon:getIcon,
+            extClick:function(item){
+              window.location.href=item.url;
+            },
+            formSubmit: function () {
+                $("#changelist-form").submit();
+            },
+            delSelected: function (name) {
+
+                $("#changelist-form input[name='action']").val(name);
+
+                $("#changelist-form [name='_save']").removeAttr('name');
+
+                $("#changelist-form [name!='']").each(function () {
+                    var obj = $(this);
+                    if (obj.attr('name') && obj.attr('name').indexOf('form-') == 0) {
+                        obj.removeAttr('name');
+                    }
+                });
+
+
+                var self=this;
+                function showMessage(msgs){
+                    msgs.forEach(item => {
+                        this.$notify({
+                            title: getLanuage('Tips'),
+                            message: item.msg,
+                            type: item.tag,
+                            dangerouslyUseHTMLString: true
+                        });
+                    });
+                }
+
+
+                //#67 #66 修复删除问题，改为弹出确认
+
+                this.$confirm(getLanuage('Are you sure you want to delete the selected?'))
+                  .then(_ =>{
+                        $.ajax({
+                            type: "POST",//方法类型
+                            url: "",//url
+                            data: $("#changelist-form").serialize()+'&post=yes',
+                            success: function (result) {
+                                var msgs = $(result).find('#out_message').html().replace('var messages=', '');
+                                showMessage.call(self,JSON.parse(msgs));
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 1000);
+                            },
+                            error: function () {
+                                 this.$notify({
+                                    title: getLanuage('Tips'),
+                                    message: 'Network error',
+                                    type: 'error',
+                                    dangerouslyUseHTMLString: true
+                                });
+                            }
+                        });
+                  }).catch(_ =>{
+
+                });
+            }
+        }
+    });
+
+    function selectAll() {
+        _action.select_across = 1;
+    }
+
+    function unSelect() {
+        _action.select_across = 0;
+    }
+
+
+    $(function () {
+        $(".actions button[data-name!='delete_selected']").click(function () {
+            var url = $(this).attr("url");
+            if (url) {
+                window.location.href = url;
+                return;
+            } else if ($(this).attr('data-name')) {
+                var name = $(this).attr("data-name");
+                $("#changelist-form input[name='action']").val(name);
+
+                $("#changelist-form [name='_save']").removeAttr('name');
+
+                $("#changelist-form [name!='']").each(function () {
+                    var obj = $(this);
+                    if (obj.attr('name') && obj.attr('name').indexOf('form-') == 0) {
+                        obj.removeAttr('name');
+                    }
+                });
+                $("#changelist-form").submit();
+            } else {
+                $("#changelist-form").submit();
+            }
+        });
+    });
+</script>
+
+
+
+
+
+
+<div class="results">
+    <table id="result_list">
+        <thead>
+        <tr>
+
+                <th scope="col" class="action-checkbox-column">
+
+                    <div class="text">
+                        <span><input type="checkbox" id="action-toggle"></span></div>
+                    <div class="clear"></div>
+                </th>
+                <th scope="col" class="sortable column-latestDataId sorted ascending">
+
+
+                            <div class="sortoptions">
+                                <a class="sortremove" href="?o=" title="删除排序"></a>
+
+                                <a href="?o=-1" class="toggle ascending" title="正逆序切换"></a>
+                            </div>
+
+
+                    <div class="text">
+                        <a href="?o=-1">Id</a></div>
+                    <div class="clear"></div>
+                </th>
+                <th scope="col" class="sortable column-sourceName">
+
+
+
+                    <div class="text">
+                        <a href="?o=2.1">数据源名称</a></div>
+                    <div class="clear"></div>
+                </th>
+                <th scope="col" class="sortable column-latestDataInfo">
+
+
+
+                    <div class="text">
+                        <a href="?o=3.1">最新数据相关内容</a></div>
+                    <div class="clear"></div>
+                </th>
+                <th scope="col" class="sortable column-updateTime">
+
+
+
+                    <div class="text">
+                        <a href="?o=4.1">更新时间</a></div>
+                    <div class="clear"></div>
+                </th>
+                <th scope="col" class="sortable column-createTime">
+
+
+
+                    <div class="text">
+                        <a href="?o=5.1">创建时间</a></div>
+                    <div class="clear"></div>
+                </th>
+        </tr>
+        </thead>
+        <tbody>
+
+
+            <tr class="row1">
+
+                    <td class="action-checkbox"><input type="checkbox" name="_selected_action" value="1" class="action-select"></td>
+
+                    <th class="field-latestDataId"><a href="/adminspiderTask/lastestdata/1/change/">1</a></th>
+
+                    <td class="field-sourceName">nvd_nist</td>
+
+                    <td class="field-latestDataInfo">{"url":"","pubTime":""}</td>
+
+                    <td class="field-updateTime nowrap">2020年10月11日 19:25</td>
+
+                    <td class="field-createTime nowrap">2020年10月11日 19:25</td>
+
+            </tr>
+
+
+            <tr class="row2">
+
+                    <td class="action-checkbox"><input type="checkbox" name="_selected_action" value="2" class="action-select"></td>
+
+                    <th class="field-latestDataId"><a href="/adminspiderTask/lastestdata/2/change/">2</a></th>
+
+                    <td class="field-sourceName">ibm</td>
+
+                    <td class="field-latestDataInfo">{"url":"","pubTime":""}</td>
+
+                    <td class="field-updateTime nowrap">2020年10月11日 19:46</td>
+
+                    <td class="field-createTime nowrap">2020年10月11日 19:46</td>
+
+            </tr>
+
+
+            <tr class="row1">
+
+                    <td class="action-checkbox"><input type="checkbox" name="_selected_action" value="3" class="action-select"></td>
+
+                    <th class="field-latestDataId"><a href="/adminspiderTask/lastestdata/3/change/">3</a></th>
+
+                    <td class="field-sourceName">auscert</td>
+
+                    <td class="field-latestDataInfo">{"url":"","pubTime":""}</td>
+
+                    <td class="field-updateTime nowrap">2020年10月11日 20:04</td>
+
+                    <td class="field-createTime nowrap">2020年10月11日 20:04</td>
+
+            </tr>
+
+        </tbody>
+    </table>
+</div>
+
+
+
+
+
+
+
+<div id="pagination"></div>
+<script type="text/javascript">
+    $(function () {
+        new Vue({
+            el: "#pagination",
+            data: {},
+            methods: {
+                handleCurrentChange:function (page) {
+                    page_go(page-1);
+                }
+            }
+        })
+
+        function page_go(p) {
+            $("#changelist-search input[name='p']").val(p);
+            $("#changelist-search").submit();
+        }
+
+    });
+</script>
+            </form>
+        </div>
+    </div>
+    <script type="text/javascript">
+        $(".object-tools").hide().find('li a').each(function () {
+            _action.exts.push({
+                name:$(this).text(),
+                url:$(this).attr('href')
+            })
+        })
+
+    </script>
+
+
+            <br class="clear">

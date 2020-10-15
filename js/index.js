@@ -110,3 +110,26 @@ chrome.storage.sync.get({dgstackFlag: 'off'}, function (data) { //简书
 });
 
 
+chrome.storage.sync.get({bdwkFlag: 'off'}, function (data) { //百度文库
+    if (data.bdwkFlag == 'on') {
+        $('input[name="bdwk"]').bootstrapToggle('on');
+    } else {
+        $('input[name="bdwk"]').bootstrapToggle('off');
+    }
+
+    // 简书
+    $('input[name="bdwk"]').change(function () {
+        chrome.storage.sync.get({bdwkFlag: 'off'}, function (data) {
+            if (data.bdwkFlag == 'on') {
+                chrome.storage.sync.set({bdwkFlag: 'off'}, function () {
+                });
+            } else {
+                chrome.storage.sync.set({bdwkFlag: 'on'}, function () {
+                });
+            }
+        });
+    });
+
+});
+
+
