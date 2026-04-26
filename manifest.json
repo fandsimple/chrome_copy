@@ -14,13 +14,14 @@
     "default_popup": "./html/index.html"
   },
   "web_accessible_resources": [
+    "js/utils/logger.js",
+    "js/utils/content-enhancer.js",
+    "js/ai/summarizer.js",
+    "js/export/export-manager.js",
     "js/baseJs/jquery-2.2.1.js",
     "js/baseJs/turndown.js",
     "js/baseJs/FileSaver.js",
     "js/baseJs/jquery.wordexport.js",
-    "js/ai/summarizer.js",
-    "js/utils/content-enhancer.js",
-    "js/export/export-manager.js",
     "js/export/csdn.js",
     "js/export/juejin.js",
     "js/export/bokeyuan.js",
@@ -29,6 +30,13 @@
     "js/export/bdwk.js",
     "js/export/local.js",
     "js/export/local1.js",
+    "js/contentJs/csdn.js",
+    "js/contentJs/juejin.js",
+    "js/contentJs/bokeyuan.js",
+    "js/contentJs/jianshu.js",
+    "js/contentJs/dgstack.js",
+    "js/contentJs/bdwk.js",
+    "js/contentJs/local.js",
     "html/test.html"
   ],
   "content_scripts": [
@@ -44,14 +52,6 @@
         "http://127.0.0.1:8000/*"
       ],
       "js": [
-        "./js/baseJs/jquery-2.2.1.js",
-        "./js/contentJs/csdn.js",
-        "./js/contentJs/local.js",
-        "./js/contentJs/juejin.js",
-        "./js/contentJs/bokeyuan.js",
-        "./js/contentJs/jianshu.js",
-        "./js/contentJs/dgstack.js",
-        "./js/contentJs/bdwk.js",
         "./js/contentJs/content.js"
       ],
       "css": [
