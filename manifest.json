@@ -30,6 +30,8 @@
     "js/export/jianshu.js",
     "js/export/dgstack.js",
     "js/export/bdwk.js",
+    "js/export/zhihu.js",
+    "js/export/oschina.js",
     "js/export/local.js",
     "js/export/local1.js",
     "html/test.html"
@@ -49,6 +51,14 @@
         "https://www.dgstack.cn/*",
         // baiduwenku
         "https://wenku.baidu.com/view/*",
+        // 知乎专栏
+        "https://zhuanlan.zhihu.com/*",
+        // 知乎文章
+        "https://www.zhihu.com/question/*",
+        "https://www.zhihu.com/answer/*",
+        // 开源中国
+        "https://www.oschina.net/*",
+        // 测试
         "http://127.0.0.1:8000/*"
       ],
       "js": [
