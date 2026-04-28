@@ -1,78 +1,89 @@
 {
-  // 清单文件的版本，这个必须写，而且必须是2
-  "manifest_version": 2,
-  // 插件的名称
-  "name": "文章复制工具",
-  // 插件的版本
-  "version": "1.0.0",
-  // 插件描述
-  "description": "文章内容提取",
-  // 图标，一般偷懒全部用一个尺寸的也没问题
+  "manifest_version": 3,
+  "name": "Smart Article Extractor",
+  "version": "3.1.0",
+  "description": "AI-powered intelligent article extraction and conversion tool with advanced parsing, content enhancement, and multi-format export",
   "icons": {
-    "16": "./img/icon.png",
-    "48": "./img/icon.png",
-    "128": "./img/icon.png"
+    "16": "img/icon.png",
+    "32": "img/icon.png",
+    "48": "img/icon.png",
+    "128": "img/icon.png"
   },
-  "browser_action": {
-    "default_icon": "./img/icon.png",
-    // 图标悬停时的标题，可选
-    "default_title": "文章内容提取",
-    "default_popup": "./html/index.html"
-  },
-  "web_accessible_resources": [
-    "js/baseJs/jquery-2.2.1.js",
-    "js/baseJs/turndown.js",
-    "js/baseJs/FileSaver.js",
-    "js/baseJs/jquery.wordexport.js",
-    "js/export/csdn.js",
-    "js/export/juejin.js",
-    "js/export/bokeyuan.js",
-    "js/export/jianshu.js",
-    "js/export/dgstack.js",
-    "js/export/bdwk.js",
-    "js/export/local.js",
-    "js/export/local1.js",
-    "html/test.html"
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "downloads",
+    "tabs",
+    "contextMenus",
+    "clipboardWrite",
+    "alarms"
   ],
+  "host_permissions": [
+    "https://blog.csdn.net/*",
+    "https://juejin.cn/*",
+    "https://juejin.im/*",
+    "https://www.cnblogs.com/*",
+    "https://www.jianshu.com/*",
+    "https://zhuanlan.zhihu.com/*",
+    "https://www.zhihu.com/*",
+    "https://segmentfault.com/*",
+    "https://www.dgstack.cn/*",
+    "https://wenku.baidu.com/*",
+    "<all_urls>"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "img/icon.png",
+      "32": "img/icon.png"
+    },
+    "default_title": "Smart Article Extractor",
+    "default_popup": "html/index.html"
+  },
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
   "content_scripts": [
     {
-      "matches": [
-        // CSDN
-        "https://blog.csdn.net/*",
-        // 掘金
-        "https://juejin.im/post/*",
-        // 博客园
-        "https://www.cnblogs.com/*",
-        // 简书
-        "https://www.jianshu.com/*",
-        // dgstack
-        "https://www.dgstack.cn/*",
-        // baiduwenku
-        "https://wenku.baidu.com/view/*",
-        "http://127.0.0.1:8000/*"
-      ],
+      "matches": ["<all_urls>"],
       "js": [
-        "./js/baseJs/jquery-2.2.1.js",
-        "./js/contentJs/csdn.js",
-        "./js/contentJs/local.js",
-        "./js/contentJs/juejin.js",
-        "./js/contentJs/bokeyuan.js",
-        "./js/contentJs/jianshu.js",
-        "./js/contentJs/dgstack.js",
-        "./js/contentJs/bdwk.js",
-        "./js/contentJs/content.js"
-
+        "js/baseJs/jquery-2.2.1.js",
+        "js/baseJs/turndown.js",
+        "core/constants.js",
+        "core/parser/ai-parser.js",
+        "core/parser/content-enhancer.js",
+        "core/platform/custom-rules-manager.js",
+        "core/platform/template-engine.js",
+        "core/platform/export-manager.js",
+        "core/platform/batch-manager.js",
+        "core/platform/error-handler.js",
+        "content-scripts/index.js"
       ],
       "css": [
-        "./css/bootstrap.min.css"
+        "css/index.css",
+        "content-scripts/styles.css"
       ],
       "run_at": "document_end"
     }
   ],
-  //  "content_security_policy": "script-src 'self' https://unpkg.com/turndown@5.0.3/dist/turndown.js; object-src 'self'",
-  "permissions": [
-    "storage"
+  "options_page": "html/index.html",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "js/baseJs/*.js",
+        "core/*.js",
+        "core/parser/*.js",
+        "core/platform/*.js",
+        "content-scripts/*.js",
+        "html/*.html",
+        "css/*.css",
+        "img/*.png",
+        "img/*.jpg",
+        "img/*.gif",
+        "img/*.svg"
+      ],
+      "matches": ["<all_urls>"]
+    }
   ]
 }
-
-
