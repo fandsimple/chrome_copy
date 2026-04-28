@@ -1,4 +1,4 @@
-const DEFAULT_SETTINGS = {
+var DEFAULT_SETTINGS = {
   autoDetectPlatform: true,
   autoInjectButton: true,
   enableReadingMode: true,
@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS = {
   mergeQueue: []
 };
 
-const PLATFORM_RULES = {
+var PLATFORM_RULES = {
   csdn: {
     name: 'CSDN',
     patterns: ['blog.csdn.net'],
@@ -141,7 +141,7 @@ const PLATFORM_RULES = {
   }
 };
 
-const STORAGE_KEYS = {
+var STORAGE_KEYS = {
   SETTINGS: 'smart_extractor_settings',
   HISTORY: 'smart_extractor_history',
   CUSTOM_RULES: 'smart_extractor_custom_rules',
@@ -149,7 +149,7 @@ const STORAGE_KEYS = {
   TEMPLATES: 'smart_extractor_templates'
 };
 
-const MESSAGES = {
+var MESSAGES = {
   PARSE_ARTICLE: 'PARSE_ARTICLE',
   EXPORT_MARKDOWN: 'EXPORT_MARKDOWN',
   EXPORT_PDF: 'EXPORT_PDF',
@@ -165,10 +165,15 @@ const MESSAGES = {
   PROCESS_BATCH: 'PROCESS_BATCH',
   GET_HISTORY: 'GET_HISTORY',
   CLEAR_HISTORY: 'CLEAR_HISTORY',
-  GET_PAGE_INFO: 'GET_PAGE_INFO'
+  GET_PAGE_INFO: 'GET_PAGE_INFO',
+  GET_BATCH_STATUS: 'GET_BATCH_STATUS',
+  APPLY_CUSTOM_RULE: 'APPLY_CUSTOM_RULE',
+  SCHEDULE_PARSE: 'SCHEDULE_PARSE',
+  CANCEL_SCHEDULE: 'CANCEL_SCHEDULE',
+  GET_SCHEDULED: 'GET_SCHEDULED'
 };
 
-const EXPORT_FORMATS = {
+var EXPORT_FORMATS = {
   MARKDOWN: 'markdown',
   PDF: 'pdf',
   HTML: 'html',
@@ -177,10 +182,10 @@ const EXPORT_FORMATS = {
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    DEFAULT_SETTINGS,
-    PLATFORM_RULES,
-    STORAGE_KEYS,
-    MESSAGES,
-    EXPORT_FORMATS
+    DEFAULT_SETTINGS: DEFAULT_SETTINGS,
+    PLATFORM_RULES: PLATFORM_RULES,
+    STORAGE_KEYS: STORAGE_KEYS,
+    MESSAGES: MESSAGES,
+    EXPORT_FORMATS: EXPORT_FORMATS
   };
 }

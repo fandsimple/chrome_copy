@@ -1,582 +1,680 @@
-class ErrorHandler {
-  constructor(options = {}) {
-    this.options = {
-      maxRetries: 3,
-      retryDelay: 1000,
-      maxRetryDelay: 30000,
-      backoffMultiplier: 2,
-      timeout: 30000,
-      ...options
-    };
+var ErrorHandler = function(options) {
+  var opts = options || {};
+  this.options = {
+    maxRetries: opts.maxRetries !== undefined ? opts.maxRetries : 3,
+    retryDelay: opts.retryDelay !== undefined ? opts.retryDelay : 1000,
+    maxRetryDelay: opts.maxRetryDelay !== undefined ? opts.maxRetryDelay : 30000,
+    backoffMultiplier: opts.backoffMultiplier !== undefined ? opts.backoffMultiplier : 2,
+    timeout: opts.timeout !== undefined ? opts.timeout : 30000
+  };
 
-    this.retryableErrors = new Set([
-      'NetworkError',
-      'TimeoutError',
-      'ConnectionError',
-      'FetchError',
-      'AbortError',
-      'Network request failed',
-      'Failed to fetch',
-      'net::ERR_'
-    ]);
+  this.retryableErrors = [
+    'NetworkError',
+    'TimeoutError',
+    'ConnectionError',
+    'FetchError',
+    'AbortError',
+    'Network request failed',
+    'Failed to fetch',
+    'net::ERR_'
+  ];
 
-    this.errorLog = [];
-    this.maxLogSize = 1000;
-    this.listeners = {};
+  this.errorLog = [];
+  this.maxLogSize = 1000;
+  this.listeners = {};
+};
+
+ErrorHandler.prototype.on = function(event, callback) {
+  if (!this.listeners[event]) {
+    this.listeners[event] = [];
   }
+  this.listeners[event].push(callback);
+};
 
-  on(event, callback) {
-    if (!this.listeners[event]) {
-      this.listeners[event] = [];
-    }
-    this.listeners[event].push(callback);
+ErrorHandler.prototype.off = function(event, callback) {
+  if (!this.listeners[event]) return;
+  this.listeners[event] = this.listeners[event].filter(function(cb) { return cb !== callback; });
+};
+
+ErrorHandler.prototype.emit = function(event, data) {
+  if (!this.listeners[event]) return;
+  var listeners = this.listeners[event];
+  for (var i = 0; i < listeners.length; i++) {
+    listeners[i](data);
   }
+};
 
-  off(event, callback) {
-    if (!this.listeners[event]) return;
-    this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
-  }
+ErrorHandler.prototype.executeWithRetry = function(fn, options) {
+  var self = this;
+  var opts = options || {};
+  
+  var maxRetries = opts.maxRetries !== undefined ? opts.maxRetries : this.options.maxRetries;
+  var retryDelay = opts.retryDelay !== undefined ? opts.retryDelay : this.options.retryDelay;
+  var backoffMultiplier = opts.backoffMultiplier !== undefined ? opts.backoffMultiplier : this.options.backoffMultiplier;
+  var shouldRetry = opts.shouldRetry || this.isRetryableError.bind(this);
 
-  emit(event, data) {
-    if (!this.listeners[event]) return;
-    this.listeners[event].forEach(callback => callback(data));
-  }
+  return new Promise(function(resolve) {
+    var lastError = null;
+    var currentDelay = retryDelay;
+    var attempt = 0;
 
-  async executeWithRetry(fn, options = {}) {
-    const maxRetries = options.maxRetries ?? this.options.maxRetries;
-    const retryDelay = options.retryDelay ?? this.options.retryDelay;
-    const backoffMultiplier = options.backoffMultiplier ?? this.options.backoffMultiplier;
-    const shouldRetry = options.shouldRetry || this.isRetryableError.bind(this);
-
-    let lastError = null;
-    let currentDelay = retryDelay;
-
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        const result = await fn();
-        return {
+    function tryExecute() {
+      Promise.resolve(fn()).then(function(result) {
+        resolve({
           success: true,
           result: result,
           attempts: attempt + 1
-        };
-      } catch (error) {
+        });
+      }).catch(function(error) {
         lastError = error;
-        const errorInfo = this.normalizeError(error);
+        var errorInfo = self.normalizeError(error);
 
-        this.logError({
+        self.logError({
           error: errorInfo,
           attempt: attempt + 1,
           totalAttempts: maxRetries + 1,
-          context: options.context
+          context: opts.context
         });
 
-        this.emit('error', {
+        self.emit('error', {
           error: errorInfo,
           attempt: attempt + 1,
           willRetry: attempt < maxRetries && shouldRetry(errorInfo)
         });
 
         if (attempt >= maxRetries || !shouldRetry(errorInfo)) {
-          break;
+          resolve({
+            success: false,
+            error: self.normalizeError(lastError),
+            attempts: maxRetries + 1
+          });
+          return;
         }
 
-        this.emit('retryScheduled', {
+        self.emit('retryScheduled', {
           delay: currentDelay,
           attempt: attempt + 1,
           nextAttempt: attempt + 2
         });
 
-        await this.sleep(currentDelay);
-        currentDelay = Math.min(currentDelay * backoffMultiplier, this.options.maxRetryDelay);
-      }
+        attempt++;
+        self.sleep(currentDelay).then(function() {
+          currentDelay = Math.min(currentDelay * backoffMultiplier, self.options.maxRetryDelay);
+          tryExecute();
+        });
+      });
     }
 
-    return {
-      success: false,
-      error: this.normalizeError(lastError),
-      attempts: maxRetries + 1
-    };
+    tryExecute();
+  });
+};
+
+ErrorHandler.prototype.isRetryableError = function(error) {
+  if (!error) return false;
+
+  var errorMessage = '';
+  if (error.message) {
+    errorMessage = error.message.toLowerCase();
+  } else if (error.name) {
+    errorMessage = error.name.toLowerCase();
+  } else {
+    errorMessage = String(error).toLowerCase();
   }
 
-  isRetryableError(error) {
-    if (!error) return false;
-
-    const errorMessage = (error.message || error.name || String(error)).toLowerCase();
-
-    for (const retryable of this.retryableErrors) {
-      if (errorMessage.includes(retryable.toLowerCase())) {
-        return true;
-      }
+  for (var i = 0; i < this.retryableErrors.length; i++) {
+    if (errorMessage.indexOf(this.retryableErrors[i].toLowerCase()) !== -1) {
+      return true;
     }
-
-    if (error.name) {
-      if (['TimeoutError', 'NetworkError', 'AbortError', 'TypeError'].includes(error.name)) {
-        return true;
-      }
-    }
-
-    if (error.status) {
-      if (error.status >= 500 && error.status < 600) {
-        return true;
-      }
-      if (error.status === 429) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
-  normalizeError(error) {
-    if (!error) {
-      return {
-        name: 'UnknownError',
-        message: 'An unknown error occurred',
-        timestamp: Date.now()
-      };
+  if (error.name) {
+    var retryableNames = ['TimeoutError', 'NetworkError', 'AbortError', 'TypeError'];
+    for (var j = 0; j < retryableNames.length; j++) {
+      if (error.name === retryableNames[j]) {
+        return true;
+      }
     }
+  }
 
-    if (typeof error === 'string') {
-      return {
-        name: 'Error',
-        message: error,
-        timestamp: Date.now()
-      };
+  if (error.status) {
+    if (error.status >= 500 && error.status < 600) {
+      return true;
     }
+    if (error.status === 429) {
+      return true;
+    }
+  }
 
+  return false;
+};
+
+ErrorHandler.prototype.normalizeError = function(error) {
+  if (!error) {
     return {
-      name: error.name || 'Error',
-      message: error.message || String(error),
-      stack: error.stack,
-      status: error.status,
-      statusText: error.statusText,
-      code: error.code,
+      name: 'UnknownError',
+      message: 'An unknown error occurred',
       timestamp: Date.now()
     };
   }
 
-  logError(errorEntry) {
-    const entry = {
-      id: this.generateId(),
-      ...errorEntry,
+  if (typeof error === 'string') {
+    return {
+      name: 'Error',
+      message: error,
       timestamp: Date.now()
     };
+  }
 
-    this.errorLog.push(entry);
+  return {
+    name: error.name || 'Error',
+    message: error.message || String(error),
+    stack: error.stack,
+    status: error.status,
+    statusText: error.statusText,
+    code: error.code,
+    timestamp: Date.now()
+  };
+};
 
-    if (this.errorLog.length > this.maxLogSize) {
-      this.errorLog = this.errorLog.slice(-this.maxLogSize / 2);
+ErrorHandler.prototype.logError = function(errorEntry) {
+  var entry = {
+    id: this.generateId(),
+    timestamp: Date.now()
+  };
+  
+  for (var key in errorEntry) {
+    if (errorEntry.hasOwnProperty(key)) {
+      entry[key] = errorEntry[key];
     }
-
-    this.emit('errorLogged', entry);
   }
 
-  getErrorLog(options = {}) {
-    let log = [...this.errorLog];
+  this.errorLog.push(entry);
 
-    if (options.since) {
-      log = log.filter(entry => entry.timestamp >= options.since);
-    }
-
-    if (options.errorType) {
-      log = log.filter(entry => 
-        entry.error?.name === options.errorType);
-    }
-
-    if (options.limit) {
-      log = log.slice(-options.limit);
-    }
-
-    return log;
+  if (this.errorLog.length > this.maxLogSize) {
+    this.errorLog = this.errorLog.slice(-Math.floor(this.maxLogSize / 2));
   }
 
-  clearErrorLog() {
-    const oldLog = [...this.errorLog];
-    this.errorLog = [];
-    this.emit('errorLogCleared', { count: oldLog.length });
-    return oldLog;
+  this.emit('errorLogged', entry);
+};
+
+ErrorHandler.prototype.getErrorLog = function(options) {
+  var opts = options || {};
+  var log = [];
+  
+  for (var i = 0; i < this.errorLog.length; i++) {
+    log.push(this.errorLog[i]);
   }
 
-  sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  if (opts.since) {
+    log = log.filter(function(entry) {
+      return entry.timestamp >= opts.since;
+    });
   }
 
-  generateId() {
-    return 'err_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  if (opts.errorType) {
+    log = log.filter(function(entry) {
+      return entry.error && entry.error.name === opts.errorType;
+    });
   }
 
-  wrapForErrorHandling(fn, options = {}) {
-    return async (...args) => {
-      return this.executeWithRetry(() => fn(...args), options);
-    };
+  if (opts.limit) {
+    log = log.slice(-opts.limit);
   }
 
-  createSafeWrapper(options = {}) {
-    return {
-      wrap: (fn) => this.wrapForErrorHandling(fn, options),
-      execute: (fn) => this.executeWithRetry(fn, options),
-      log: (error, context) => this.logError({ error, context }),
-      getErrors: (opts) => this.getErrorLog(opts),
-      clearErrors: () => this.clearErrorLog()
-    };
+  return log;
+};
+
+ErrorHandler.prototype.clearErrorLog = function() {
+  var oldLog = [];
+  for (var i = 0; i < this.errorLog.length; i++) {
+    oldLog.push(this.errorLog[i]);
   }
-}
+  this.errorLog = [];
+  this.emit('errorLogCleared', { count: oldLog.length });
+  return oldLog;
+};
 
-class SilentParser {
-  constructor(options = {}) {
-    this.options = {
-      maxConcurrent: 2,
-      requestTimeout: 30000,
-      rateLimit: 1000,
-      ...options
-    };
+ErrorHandler.prototype.sleep = function(ms) {
+  return new Promise(function(resolve) {
+    setTimeout(resolve, ms);
+  });
+};
 
-    this.parser = options.parser;
-    this.enhancer = options.enhancer;
-    this.errorHandler = new ErrorHandler();
-    this.queue = [];
-    this.processing = false;
-    this.results = new Map();
-  }
+ErrorHandler.prototype.generateId = function() {
+  return 'err_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+};
 
-  async parseSilently(doc, url, options = {}) {
-    const result = await this.errorHandler.executeWithRetry(
-      async () => {
-        if (!this.parser) {
-          throw new Error('Parser not initialized');
-        }
+ErrorHandler.prototype.wrapForErrorHandling = function(fn, options) {
+  var self = this;
+  return function() {
+    var args = arguments;
+    return self.executeWithRetry(function() {
+      return fn.apply(null, args);
+    }, options);
+  };
+};
 
-        return this.parser.parse(doc, url, options.customRules);
-      },
-      {
-        maxRetries: options.maxRetries ?? this.options.maxRetries,
-        context: { url, operation: 'parse' }
+ErrorHandler.prototype.createSafeWrapper = function(options) {
+  var self = this;
+  return {
+    wrap: function(fn) { return self.wrapForErrorHandling(fn, options); },
+    execute: function(fn) { return self.executeWithRetry(fn, options); },
+    log: function(error, context) { return self.logError({ error: error, context: context }); },
+    getErrors: function(opts) { return self.getErrorLog(opts); },
+    clearErrors: function() { return self.clearErrorLog(); }
+  };
+};
+
+var SilentParser = function(options) {
+  var opts = options || {};
+  this.options = {
+    maxConcurrent: opts.maxConcurrent !== undefined ? opts.maxConcurrent : 2,
+    requestTimeout: opts.requestTimeout !== undefined ? opts.requestTimeout : 30000,
+    rateLimit: opts.rateLimit !== undefined ? opts.rateLimit : 1000
+  };
+
+  this.parser = opts.parser;
+  this.enhancer = opts.enhancer;
+  this.errorHandler = new ErrorHandler();
+  this.queue = [];
+  this.processing = false;
+  this.results = {};
+};
+
+SilentParser.prototype.parseSilently = function(doc, url, options) {
+  var self = this;
+  var opts = options || {};
+  
+  return this.errorHandler.executeWithRetry(
+    function() {
+      if (!self.parser) {
+        throw new Error('Parser not initialized');
       }
-    );
-
-    if (result.success && this.enhancer) {
+      return self.parser.parse(doc, url, opts.customRules);
+    },
+    {
+      maxRetries: opts.maxRetries !== undefined ? opts.maxRetries : self.options.maxRetries,
+      context: { url: url, operation: 'parse' }
+    }
+  ).then(function(result) {
+    if (result.success && self.enhancer) {
       try {
-        result.result = this.enhancer.enhance(result.result);
+        result.result = self.enhancer.enhance(result.result);
       } catch (enhanceError) {
         console.warn('Content enhancement failed:', enhanceError);
       }
     }
-
     return result;
+  });
+};
+
+SilentParser.prototype.parseUrlSilently = function(url, options) {
+  var self = this;
+  var opts = options || {};
+  
+  if (typeof chrome === 'undefined' || !chrome.tabs) {
+    return Promise.resolve({
+      success: false,
+      error: {
+        name: 'EnvironmentError',
+        message: 'Chrome tabs API not available'
+      }
+    });
   }
 
-  async parseUrlSilently(url, options = {}) {
-    if (typeof chrome === 'undefined' || !chrome.tabs) {
-      return {
-        success: false,
-        error: {
-          name: 'EnvironmentError',
-          message: 'Chrome tabs API not available'
-        }
-      };
-    }
+  return this.errorHandler.executeWithRetry(
+    function() {
+      return new Promise(function(resolve, reject) {
+        var timeout = setTimeout(function() {
+          reject(new Error('Parse request timeout'));
+        }, self.options.requestTimeout);
 
-    return this.errorHandler.executeWithRetry(
-      async () => {
-        return new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(new Error('Parse request timeout'));
-          }, this.options.requestTimeout);
+        chrome.tabs.query({ url: url }, function(tabs) {
+          clearTimeout(timeout);
 
-          chrome.tabs.query({ url: url }, async (tabs) => {
-            clearTimeout(timeout);
+          if (tabs.length === 0) {
+            reject(new Error('Tab not found for URL: ' + url));
+            return;
+          }
 
-            if (tabs.length === 0) {
-              reject(new Error(`Tab not found for URL: ${url}`));
-              return;
-            }
-
-            try {
-              const results = await chrome.scripting.executeScript({
-                target: { tabId: tabs[0].id },
-                func: (parserOptions => {
-                  return {
-                    title: document.title,
-                    url: window.location.href,
-                    html: document.documentElement.outerHTML
-                  };
-                },
-                args: [options]
-              });
-
+          try {
+            chrome.scripting.executeScript({
+              target: { tabId: tabs[0].id },
+              func: function() {
+                return {
+                  title: document.title,
+                  url: window.location.href,
+                  html: document.documentElement.outerHTML
+                };
+              }
+            }, function(results) {
               if (!results || results.length === 0) {
                 reject(new Error('Failed to execute script'));
                 return;
               }
-
-              const tabData = results[0].result;
-              resolve(tabData);
-            } catch (scriptError) {
-              reject(scriptError);
-            }
-          });
+              resolve(results[0].result);
+            });
+          } catch (scriptError) {
+            reject(scriptError);
+          }
         });
-      },
-      {
-        maxRetries: options.maxRetries ?? this.options.maxRetries,
-        context: { url, operation: 'fetchPage' }
-      }
-    );
-  }
-
-  addToParseQueue(url, options = {}) {
-    const queueItem = {
-      id: this.generateId(),
-      url: url,
-      options: options,
-      status: 'queued',
-      addedAt: Date.now(),
-      startedAt: null,
-      completedAt: null,
-      result: null,
-      error: null
-    };
-
-    this.queue.push(queueItem);
-    return queueItem;
-  }
-
-  async processQueue(options = {}) {
-    if (this.processing) {
-      return { success: false, error: 'Already processing queue' };
+      });
+    },
+    {
+      maxRetries: opts.maxRetries !== undefined ? opts.maxRetries : self.options.maxRetries,
+      context: { url: url, operation: 'fetchPage' }
     }
+  );
+};
 
-    this.processing = true;
-    const concurrent = options.concurrent ?? this.options.maxConcurrent;
-    const pendingItems = this.queue.filter(item => item.status === 'queued');
+SilentParser.prototype.addToParseQueue = function(url, options) {
+  var queueItem = {
+    id: this.generateId(),
+    url: url,
+    options: options || {},
+    status: 'queued',
+    addedAt: Date.now(),
+    startedAt: null,
+    completedAt: null,
+    result: null,
+    error: null
+  };
 
-    const processItem = async (item) => {
-      item.status = 'processing';
-      item.startedAt = Date.now();
+  this.queue.push(queueItem);
+  return queueItem;
+};
 
-      try {
-        const result = await this.parseUrlSilently(item.url, item.options);
-        item.status = result.success ? 'completed' : 'failed';
-        item.result = result.success ? result.result : null;
-        item.error = result.success ? null : result.error;
+SilentParser.prototype.processQueue = function(options) {
+  var self = this;
+  var opts = options || {};
+  
+  if (this.processing) {
+    return Promise.resolve({ success: false, error: 'Already processing queue' });
+  }
 
-        if (result.success) {
-          this.results.set(item.id, result.result);
-        }
-      } catch (error) {
-        item.status = 'failed';
-        item.error = this.errorHandler.normalizeError(error);
+  this.processing = true;
+  var concurrent = opts.concurrent !== undefined ? opts.concurrent : this.options.maxConcurrent;
+  
+  var pendingItems = [];
+  for (var i = 0; i < this.queue.length; i++) {
+    if (this.queue[i].status === 'queued') {
+      pendingItems.push(this.queue[i]);
+    }
+  }
+
+  var processItem = function(item) {
+    item.status = 'processing';
+    item.startedAt = Date.now();
+
+    return self.parseUrlSilently(item.url, item.options).then(function(result) {
+      item.status = result.success ? 'completed' : 'failed';
+      item.result = result.success ? result.result : null;
+      item.error = result.success ? null : result.error;
+
+      if (result.success) {
+        self.results[item.id] = result.result;
       }
-
+    }).catch(function(error) {
+      item.status = 'failed';
+      item.error = self.errorHandler.normalizeError(error);
+    }).finally(function() {
       item.completedAt = Date.now();
       return item;
-    };
+    });
+  };
 
-    const workers = [];
-    for (let i = 0; i < concurrent; i++) {
-      workers.push(this.runWorker(pendingItems, processItem));
+  var runWorker = function(items) {
+    return new Promise(function(resolve) {
+      var index = 0;
+      
+      function next() {
+        if (index >= items.length) {
+          resolve();
+          return;
+        }
+        
+        var item = items[index];
+        index++;
+        
+        if (item.status === 'queued') {
+          processItem(item).then(function() {
+            return self.errorHandler.sleep(self.options.rateLimit);
+          }).then(next);
+        } else {
+          next();
+        }
+      }
+      
+      next();
+    });
+  };
+
+  var workers = [];
+  var itemsPerWorker = Math.ceil(pendingItems.length / concurrent);
+  
+  for (var w = 0; w < concurrent; w++) {
+    var start = w * itemsPerWorker;
+    var end = Math.min(start + itemsPerWorker, pendingItems.length);
+    var workerItems = pendingItems.slice(start, end);
+    workers.push(runWorker(workerItems));
+  }
+
+  return Promise.all(workers).then(function() {
+    self.processing = false;
+    
+    var completed = 0;
+    var failed = 0;
+    for (var i = 0; i < self.queue.length; i++) {
+      if (self.queue[i].status === 'completed') completed++;
+      if (self.queue[i].status === 'failed') failed++;
     }
-
-    await Promise.all(workers);
-    this.processing = false;
-
-    const completed = this.queue.filter(i => i.status === 'completed').length;
-    const failed = this.queue.filter(i => i.status === 'failed').length;
 
     return {
       success: true,
       total: pendingItems.length,
-      completed,
-      failed,
-      results: Object.fromEntries(this.results)
+      completed: completed,
+      failed: failed,
+      results: self.results
     };
+  });
+};
+
+SilentParser.prototype.getQueueStatus = function() {
+  var queued = 0;
+  var processing = 0;
+  var completed = 0;
+  var failed = 0;
+  var resultsCount = 0;
+  
+  for (var i = 0; i < this.queue.length; i++) {
+    var item = this.queue[i];
+    if (item.status === 'queued') queued++;
+    else if (item.status === 'processing') processing++;
+    else if (item.status === 'completed') completed++;
+    else if (item.status === 'failed') failed++;
+  }
+  
+  for (var key in this.results) {
+    if (this.results.hasOwnProperty(key)) {
+      resultsCount++;
+    }
   }
 
-  async runWorker(items, processItem) {
-    for (const item of items) {
-      if (item.status === 'queued') {
-        await processItem(item);
-        await this.errorHandler.sleep(this.options.rateLimit);
+  return {
+    processing: this.processing,
+    queueLength: this.queue.length,
+    queued: queued,
+    processing: processing,
+    completed: completed,
+    failed: failed,
+    resultsCount: resultsCount
+  };
+};
+
+SilentParser.prototype.getResult = function(id) {
+  return this.results[id] || null;
+};
+
+SilentParser.prototype.clearQueue = function() {
+  if (this.processing) {
+    return false;
+  }
+  this.queue = [];
+  this.results = {};
+  return true;
+};
+
+SilentParser.prototype.generateId = function() {
+  return 'parse_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+};
+
+var SiteCompatibilityLayer = function(options) {
+  var opts = options || {};
+  this.options = {
+    fallbackEnabled: opts.fallbackEnabled !== false,
+    adaptiveParsing: opts.adaptiveParsing !== false
+  };
+
+  this.siteStrategies = {};
+  this.fallbackStrategy = this.createFallbackStrategy();
+  this.errorHandler = new ErrorHandler();
+
+  this.initDefaultStrategies();
+};
+
+SiteCompatibilityLayer.prototype.initDefaultStrategies = function() {
+  this.registerStrategy('csdn', {
+    name: 'CSDN',
+    selectors: {
+      title: ['h1.title-article', '.article-title'],
+      content: ['#article_content', '.markdown_views'],
+      adBlocks: ['.recommend-item-box', '.ad-box']
+    },
+    specialHandling: ['dynamicContent', 'codeHighlight']
+  });
+
+  this.registerStrategy('juejin', {
+    name: '掘金',
+    selectors: {
+      title: ['h1.article-title'],
+      content: ['.article-content', '.markdown-body'],
+      adBlocks: ['.recommend-list', '.sidebar-block']
+    },
+    specialHandling: ['codeHighlight', 'lazyImages']
+  });
+
+  this.registerStrategy('zhihu', {
+    name: '知乎',
+    selectors: {
+      title: ['.Post-Title', '.QuestionHeader-title'],
+      content: ['.RichContent-inner', '.Post-RichText'],
+      adBlocks: ['.Pc-word-card', '.AdblockBanner']
+    },
+    specialHandling: ['dynamicContent', 'lazyImages']
+  });
+
+  this.registerStrategy('cnblogs', {
+    name: '博客园',
+    selectors: {
+      title: ['#cb_post_title_url', '.postTitle'],
+      content: ['#cnblogs_post_body'],
+      adBlocks: ['.ad_text', '#ad_text_under_commentbox']
+    },
+    specialHandling: ['codeHighlight']
+  });
+
+  this.registerStrategy('jianshu', {
+    name: '简书',
+    selectors: {
+      title: ['h1.title'],
+      content: ['.article', '._2rhmJa'],
+      adBlocks: ['.recommend-collection', '.note-bottom-ad']
+    },
+    specialHandling: ['dynamicContent']
+  });
+};
+
+SiteCompatibilityLayer.prototype.registerStrategy = function(site, config) {
+  this.siteStrategies[site] = {
+    id: site,
+    registeredAt: Date.now()
+  };
+  
+  for (var key in config) {
+    if (config.hasOwnProperty(key)) {
+      this.siteStrategies[site][key] = config[key];
+    }
+  }
+};
+
+SiteCompatibilityLayer.prototype.getStrategy = function(site) {
+  return this.siteStrategies[site] || this.fallbackStrategy;
+};
+
+SiteCompatibilityLayer.prototype.createFallbackStrategy = function() {
+  return {
+    name: 'Fallback',
+    selectors: {
+      title: ['h1', 'title', '.title', '.article-title'],
+      content: ['article', '.article-content', '.post-content', '#content', 'body'],
+      adBlocks: ['.ad', '.ads', '.advertisement']
+    },
+    specialHandling: ['generic']
+  };
+};
+
+SiteCompatibilityLayer.prototype.detectSite = function(url) {
+  var sitePatterns = [
+    { site: 'csdn', patterns: ['blog.csdn.net'] },
+    { site: 'juejin', patterns: ['juejin.cn', 'juejin.im'] },
+    { site: 'zhihu', patterns: ['zhihu.com', 'zhuanlan.zhihu.com'] },
+    { site: 'cnblogs', patterns: ['cnblogs.com'] },
+    { site: 'jianshu', patterns: ['jianshu.com'] },
+    { site: 'segmentfault', patterns: ['segmentfault.com'] }
+  ];
+
+  for (var i = 0; i < sitePatterns.length; i++) {
+    var sp = sitePatterns[i];
+    for (var j = 0; j < sp.patterns.length; j++) {
+      if (url.indexOf(sp.patterns[j]) !== -1) {
+        return sp.site;
       }
     }
   }
 
-  getQueueStatus() {
-    return {
-      processing: this.processing,
-      queueLength: this.queue.length,
-      queued: this.queue.filter(i => i.status === 'queued').length,
-      processing: this.queue.filter(i => i.status === 'processing').length,
-      completed: this.queue.filter(i => i.status === 'completed').length,
-      failed: this.queue.filter(i => i.status === 'failed').length,
-      resultsCount: this.results.size
-    };
-  }
+  return 'generic';
+};
 
-  getResult(id) {
-    return this.results.get(id);
-  }
+SiteCompatibilityLayer.prototype.parseWithFallback = function(doc, url, options) {
+  var self = this;
+  var opts = options || {};
+  
+  var site = this.detectSite(url);
+  var strategy = this.getStrategy(site);
 
-  clearQueue() {
-    if (this.processing) {
-      return false;
-    }
-    this.queue = [];
-    this.results.clear();
-    return true;
-  }
+  var result = {
+    site: site,
+    strategyUsed: strategy.name,
+    success: false,
+    result: null,
+    error: null,
+    attempts: []
+  };
 
-  generateId() {
-    return 'parse_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-  }
-}
+  return Promise.resolve().then(function() {
+    var processedDoc = doc;
 
-class SiteCompatibilityLayer {
-  constructor(options = {}) {
-    this.options = {
-      fallbackEnabled: true,
-      adaptiveParsing: true,
-      ...options
-    };
-
-    this.siteStrategies = new Map();
-    this.fallbackStrategy = this.createFallbackStrategy();
-    this.errorHandler = new ErrorHandler();
-
-    this.initDefaultStrategies();
-  }
-
-  initDefaultStrategies() {
-    this.registerStrategy('csdn', {
-      name: 'CSDN',
-      selectors: {
-        title: ['h1.title-article', '.article-title'],
-        content: ['#article_content', '.markdown_views'],
-        adBlocks: ['.recommend-item-box', '.ad-box']
-      },
-      preProcess: (doc) => {
-        const paywall = doc.querySelector('.hide-preCode-box, .vip-content, .need-login');
-        if (paywall) {
-          paywall.classList.remove('hide-preCode-box', 'vip-content', 'need-login');
-        }
-        return doc;
-      },
-      specialHandling: ['dynamicContent', 'codeHighlight']
-    });
-
-    this.registerStrategy('juejin', {
-      name: '掘金',
-      selectors: {
-        title: ['h1.article-title'],
-        content: ['.article-content', '.markdown-body'],
-        adBlocks: ['.recommend-list', '.sidebar-block']
-      },
-      specialHandling: ['codeHighlight', 'lazyImages']
-    });
-
-    this.registerStrategy('zhihu', {
-      name: '知乎',
-      selectors: {
-        title: ['.Post-Title', '.QuestionHeader-title'],
-        content: ['.RichContent-inner', '.Post-RichText'],
-        adBlocks: ['.Pc-word-card', '.AdblockBanner']
-      },
-      specialHandling: ['dynamicContent', 'lazyImages']
-    });
-
-    this.registerStrategy('cnblogs', {
-      name: '博客园',
-      selectors: {
-        title: ['#cb_post_title_url', '.postTitle'],
-        content: ['#cnblogs_post_body'],
-        adBlocks: ['.ad_text', '#ad_text_under_commentbox']
-      },
-      specialHandling: ['codeHighlight']
-    });
-
-    this.registerStrategy('jianshu', {
-      name: '简书',
-      selectors: {
-        title: ['h1.title'],
-        content: ['.article', '._2rhmJa'],
-        adBlocks: ['.recommend-collection', '.note-bottom-ad']
-      },
-      specialHandling: ['dynamicContent']
-    });
-  }
-
-  registerStrategy(site, config) {
-    this.siteStrategies.set(site, {
-      ...config,
-      id: site,
-      registeredAt: Date.now()
-    });
-  }
-
-  getStrategy(site) {
-    return this.siteStrategies.get(site) || this.fallbackStrategy;
-  }
-
-  createFallbackStrategy() {
-    return {
-      name: 'Fallback',
-      selectors: {
-        title: ['h1', 'title', '.title', '.article-title'],
-        content: ['article', '.article-content', '.post-content', '#content', 'body'],
-        adBlocks: ['.ad', '.ads', '.advertisement']
-      },
-      specialHandling: ['generic']
-    };
-  }
-
-  detectSite(url) {
-    const sitePatterns = [
-      { site: 'csdn', patterns: ['blog.csdn.net'] },
-      { site: 'juejin', patterns: ['juejin.cn', 'juejin.im'] },
-      { site: 'zhihu', patterns: ['zhihu.com', 'zhuanlan.zhihu.com'] },
-      { site: 'cnblogs', patterns: ['cnblogs.com'] },
-      { site: 'jianshu', patterns: ['jianshu.com'] },
-      { site: 'segmentfault', patterns: ['segmentfault.com'] }
-    ];
-
-    for (const { site, patterns } of sitePatterns) {
-      for (const pattern of patterns) {
-        if (url.includes(pattern)) {
-          return site;
-        }
+    if (strategy.preProcess) {
+      try {
+        processedDoc = strategy.preProcess(doc.cloneNode(true));
+        result.attempts.push({ step: 'preProcess', success: true });
+      } catch (preError) {
+        result.attempts.push({ step: 'preProcess', success: false, error: preError.message });
       }
     }
 
-    return 'generic';
-  }
-
-  async parseWithFallback(doc, url, options = {}) {
-    const site = this.detectSite(url);
-    const strategy = this.getStrategy(site);
-
-    const result = {
-      site: site,
-      strategyUsed: strategy.name,
-      success: false,
-      result: null,
-      error: null,
-      attempts: []
-    };
-
-    try {
-      let processedDoc = doc;
-
-      if (strategy.preProcess) {
-        try {
-          processedDoc = strategy.preProcess(doc.cloneNode(true));
-          result.attempts.push({ step: 'preProcess', success: true });
-        } catch (preError) {
-          result.attempts.push({ step: 'preProcess', success: false, error: preError.message });
-        }
-      }
-
-      if (options.parser) {
-        const parseResult = await options.parser.parse(processedDoc, url);
+    if (opts.parser) {
+      return opts.parser.parse(processedDoc, url).then(function(parseResult) {
         result.result = parseResult;
         result.success = parseResult.success;
 
@@ -585,133 +683,147 @@ class SiteCompatibilityLayer {
         } else {
           result.attempts.push({ step: 'parse', success: false, error: parseResult.error });
         }
-      }
-
-      if (strategy.specialHandling && options.parser) {
-        for (const handling of strategy.specialHandling) {
+        return parseResult;
+      });
+    }
+    return null;
+  }).then(function(parseResult) {
+    if (strategy.specialHandling && opts.parser) {
+      for (var i = 0; i < strategy.specialHandling.length; i++) {
+        var handling = strategy.specialHandling[i];
         try {
-          await this.applySpecialHandling(processedDoc, handling, options);
-          result.attempts.push({ step: `specialHandling:${handling}`, success: true });
+          self.applySpecialHandling(doc, handling, opts);
+          result.attempts.push({ step: 'specialHandling:' + handling, success: true });
         } catch (handleError) {
-          result.attempts.push({ step: `specialHandling:${handling}`, success: false, error: handleError.message });
-        }
-      }
-
-    } catch (error) {
-      result.error = this.errorHandler.normalizeError(error);
-
-      if (this.options.fallbackEnabled && strategy.name !== 'Fallback') {
-        result.attempts.push({ step: 'fallback', message: 'Attempting fallback strategy' });
-
-        try {
-          const fallbackResult = await this.parseWithFallback(doc, url, {
-            ...options,
-            forceFallback: true
-          });
-          if (fallbackResult.success) {
-            result.result = fallbackResult.result;
-            result.success = true;
-            result.strategyUsed = 'Fallback';
-            result.attempts.push({ step: 'fallback', success: true });
-          }
-        } catch (fallbackError) {
-          result.attempts.push({ step: 'fallback', success: false, error: fallbackError.message });
+          result.attempts.push({ step: 'specialHandling:' + handling, success: false, error: handleError.message });
         }
       }
     }
-
     return result;
+  }).catch(function(error) {
+    result.error = self.errorHandler.normalizeError(error);
+
+    if (self.options.fallbackEnabled && strategy.name !== 'Fallback') {
+      result.attempts.push({ step: 'fallback', message: 'Attempting fallback strategy' });
+
+      return self.parseWithFallback(doc, url, {
+        parser: opts.parser,
+        forceFallback: true
+      }).then(function(fallbackResult) {
+        if (fallbackResult.success) {
+          result.result = fallbackResult.result;
+          result.success = true;
+          result.strategyUsed = 'Fallback';
+          result.attempts.push({ step: 'fallback', success: true });
+        }
+        return result;
+      }).catch(function(fallbackError) {
+        result.attempts.push({ step: 'fallback', success: false, error: fallbackError.message });
+        return result;
+      });
+    }
+    
+    return result;
+  });
+};
+
+SiteCompatibilityLayer.prototype.applySpecialHandling = function(doc, handlingType, options) {
+  switch (handlingType) {
+    case 'dynamicContent':
+      return this.handleDynamicContent(doc);
+    case 'lazyImages':
+      return this.handleLazyImages(doc);
+    case 'codeHighlight':
+      return this.handleCodeHighlight(doc);
+    default:
+      return doc;
+  }
+};
+
+SiteCompatibilityLayer.prototype.handleDynamicContent = function(doc) {
+  var lazyElements = doc.querySelectorAll('[data-src], [data-original], [data-lazy]');
+
+  for (var i = 0; i < lazyElements.length; i++) {
+    var el = lazyElements[i];
+    var dataSrc = el.getAttribute('data-src');
+    var dataOriginal = el.getAttribute('data-original');
+    var dataLazy = el.getAttribute('data-lazy');
+
+    if (dataSrc && !el.src) {
+      el.src = dataSrc;
+    }
+    if (dataOriginal && !el.src) {
+      el.src = dataOriginal;
+    }
+    if (dataLazy && !el.src) {
+      el.src = dataLazy;
+    }
+
+    el.removeAttribute('data-src');
+    el.removeAttribute('data-original');
+    el.removeAttribute('data-lazy');
   }
 
-  async applySpecialHandling(doc, handlingType, options) {
-    switch (handlingType) {
-      case 'dynamicContent':
-        return this.handleDynamicContent(doc);
-      case 'lazyImages':
-        return this.handleLazyImages(doc);
-      case 'codeHighlight':
-        return this.handleCodeHighlight(doc);
-      default:
-        return doc;
+  return doc;
+};
+
+SiteCompatibilityLayer.prototype.handleLazyImages = function(doc) {
+  var images = doc.querySelectorAll('img');
+
+  for (var i = 0; i < images.length; i++) {
+    var img = images[i];
+    var sources = [
+      img.getAttribute('data-src'),
+      img.getAttribute('data-original'),
+      img.getAttribute('data-lazy'),
+      img.getAttribute('data-srcset') ? img.getAttribute('data-srcset').split(' ')[0] : null
+    ];
+
+    for (var j = 0; j < sources.length; j++) {
+      var src = sources[j];
+      if (src && src.length > 0) {
+        if (!img.src || img.src.indexOf('placeholder') !== -1) {
+          img.src = src;
+        }
+        break;
+      }
     }
   }
 
-  handleDynamicContent(doc) {
-    const lazyElements = doc.querySelectorAll('[data-src], [data-original], [data-lazy]');
+  return doc;
+};
 
-    lazyElements.forEach(el => {
-      const dataSrc = el.getAttribute('data-src');
-      const dataOriginal = el.getAttribute('data-original');
-      const dataLazy = el.getAttribute('data-lazy');
+SiteCompatibilityLayer.prototype.handleCodeHighlight = function(doc) {
+  var codeBlocks = doc.querySelectorAll('pre, code');
 
-      if (dataSrc && !el.src) {
-        el.src = dataSrc;
-      }
-      if (dataOriginal && !el.src) {
-        el.src = dataOriginal;
-      }
-      if (dataLazy && !el.src) {
-        el.src = dataLazy;
-      }
-
-      el.removeAttribute('data-src');
-      el.removeAttribute('data-original');
-      el.removeAttribute('data-lazy');
-    });
-
-    return doc;
+  for (var i = 0; i < codeBlocks.length; i++) {
+    var block = codeBlocks[i];
+    if (block.style && !block.style.whiteSpace) {
+      block.style.whiteSpace = 'pre-wrap';
+    }
   }
 
-  handleLazyImages(doc) {
-    const images = doc.querySelectorAll('img');
+  return doc;
+};
 
-    images.forEach(img => {
-      const sources = [
-        img.getAttribute('data-src'),
-        img.getAttribute('data-original'),
-        img.getAttribute('data-lazy'),
-        img.getAttribute('data-srcset')?.split(' ')[0],
-        img.dataset?.src
-      ];
-
-      for (const src of sources) {
-        if (src && src.length > 0) {
-          if (!img.src || img.src.includes('placeholder')) {
-            img.src = src;
-          }
-          break;
-        }
-      }
-    });
-
-    return doc;
+SiteCompatibilityLayer.prototype.getRegisteredSites = function() {
+  var sites = [];
+  for (var key in this.siteStrategies) {
+    if (this.siteStrategies.hasOwnProperty(key)) {
+      sites.push(key);
+    }
   }
+  return sites;
+};
 
-  handleCodeHighlight(doc) {
-    const codeBlocks = doc.querySelectorAll('pre, code');
-
-    codeBlocks.forEach(block => {
-      if (block.style && !block.style.whiteSpace) {
-        block.style.whiteSpace = 'pre-wrap';
-      }
-    });
-
-    return doc;
-  }
-
-  getRegisteredSites() {
-    return Array.from(this.siteStrategies.keys());
-  }
-
-  getSiteInfo(site) {
-    return this.siteStrategies.get(site) || null;
-  }
-}
+SiteCompatibilityLayer.prototype.getSiteInfo = function(site) {
+  return this.siteStrategies[site] || null;
+};
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
-    ErrorHandler,
-    SilentParser,
-    SiteCompatibilityLayer
+    ErrorHandler: ErrorHandler,
+    SilentParser: SilentParser,
+    SiteCompatibilityLayer: SiteCompatibilityLayer
   };
 }
