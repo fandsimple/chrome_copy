@@ -1,63 +1,224 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Title</title>
-    <link rel="stylesheet" href="../css/bootstrap-responsive.min.css">
-    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <title>文章复制工具</title>
+    <link rel="stylesheet" href="../css/style.css">
     <script src="../js/baseJs/jquery-2.2.1.js"></script>
-    <script src="../js/baseJs/bootstrap.min.js"></script>
-    <link href="../css/bootstrap-toggle.min.css" rel="stylesheet">
-    <script src="../js/baseJs/bootstrap-toggle.min.js"></script>
     <script src="../js/index.js"></script>
-    <script src="../css/index.css"></script>
 </head>
 <body>
+    <div class="container">
+        <header class="header">
+            <div class="header-title">
+                <img src="../img/icon.png" alt="Logo" class="header-icon">
+                <div>
+                    <h1>文章复制工具</h1>
+                    <span class="header-version">v1.1.0</span>
+                </div>
+            </div>
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span style="font-size: 11px; color: #95a5a6;">就绪</span>
+            </div>
+        </header>
 
-<table class="table">
-    <caption>文章获取配置</caption>
-    <thead>
-    <tr>
-        <th>平台</th>
-        <th>开关</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-        <td>CSDN</td>
-        <td><input type="checkbox" data-toggle="toggle" name="csdn" data-size="small"></td>
-    </tr>
-    <tr>
-        <td>掘金</td>
-        <td><input type="checkbox" data-toggle="toggle" name="juejin" data-size="small"></td>
-    </tr>
-    <tr>
-        <td>博客园</td>
-        <td><input type="checkbox" data-toggle="toggle" name="bokeyuan" data-size="small"></td>
-    </tr>
-    <tr>
-        <td>简书</td>
-        <td><input type="checkbox" data-toggle="toggle" name="jianshu" data-size="small"></td>
-    </tr>
+        <section class="ai-features">
+            <div class="section-header">
+                <span class="section-icon">🤖</span>
+                <span class="section-title">AI 智能功能</span>
+            </div>
+            
+            <div class="settings-list">
+                <div class="setting-item ai-item">
+                    <div class="setting-info">
+                        <div style="display: flex; align-items: center;">
+                            <span class="setting-label">自动生成摘要</span>
+                            <span class="ai-badge">AI</span>
+                        </div>
+                        <span class="setting-desc">导出时自动生成文章核心摘要</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="aiSummary" class="toggle-switch ai-toggle">
+                    </label>
+                </div>
 
-    <tr>
-        <td>逗哥架构师之路</td>
-        <td><input type="checkbox" data-toggle="toggle" name="dgstack" data-size="small"></td>
-    </tr>
+                <div class="setting-item ai-item">
+                    <div class="setting-info">
+                        <div style="display: flex; align-items: center;">
+                            <span class="setting-label">智能内容精简</span>
+                            <span class="ai-badge">AI</span>
+                        </div>
+                        <span class="setting-desc">自动过滤冗余内容，保留核心信息</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="aiSimplify" class="toggle-switch ai-toggle">
+                    </label>
+                </div>
 
-    <tr>
-        <td>百度文库</td>
-        <td><input type="checkbox" data-toggle="toggle" name="bdwk" data-size="small"></td>
-    </tr>
-    </tbody>
-</table>
+                <div class="setting-item ai-item">
+                    <div class="setting-info">
+                        <span class="setting-label">广告内容过滤</span>
+                        <span class="setting-desc">自动识别并移除广告、推荐内容</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="adFilter" class="toggle-switch ai-toggle" checked>
+                    </label>
+                </div>
+            </div>
 
+            <div class="ai-features-info">
+                <p>💡 <strong>本地运行</strong>：所有 AI 功能均在本地执行，无需联网，保护您的隐私安全。</p>
+                <ul>
+                    <li>基于词频统计和位置权重算法生成摘要</li>
+                    <li>智能识别广告、推荐内容等噪声信息</li>
+                    <li>自动提取文章关键词，便于快速阅读</li>
+                </ul>
+            </div>
+        </section>
 
+        <section class="section">
+            <div class="section-header">
+                <span class="section-icon">🌐</span>
+                <span class="section-title">支持的平台</span>
+            </div>
+            
+            <div class="platforms-grid">
+                <div class="platform-item">
+                    <div class="platform-name">
+                        <span class="platform-icon">📝</span> CSDN
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="csdn" class="toggle-switch">
+                    </label>
+                </div>
+                
+                <div class="platform-item">
+                    <div class="platform-name">
+                        <span class="platform-icon">🏃</span> 掘金
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="juejin" class="toggle-switch">
+                    </label>
+                </div>
+                
+                <div class="platform-item">
+                    <div class="platform-name">
+                        <span class="platform-icon">📘</span> 博客园
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="bokeyuan" class="toggle-switch">
+                    </label>
+                </div>
+                
+                <div class="platform-item">
+                    <div class="platform-name">
+                        <span class="platform-icon">📖</span> 简书
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="jianshu" class="toggle-switch">
+                    </label>
+                </div>
+                
+                <div class="platform-item">
+                    <div class="platform-name">
+                        <span class="platform-icon">📚</span> 百度文库
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="bdwk" class="toggle-switch">
+                    </label>
+                </div>
+                
+                <div class="platform-item">
+                    <div class="platform-name">
+                        <span class="platform-icon">🌍</span> dgstack
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="dgstack" class="toggle-switch">
+                    </label>
+                </div>
+                
+                <div class="platform-item">
+                    <div class="platform-name">
+                        <span class="platform-icon">🧠</span> 知乎
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="zhihu" class="toggle-switch">
+                    </label>
+                </div>
+                
+                <div class="platform-item">
+                    <div class="platform-name">
+                        <span class="platform-icon">⚙️</span> 开源中国
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" name="oschina" class="toggle-switch">
+                    </label>
+                </div>
+            </div>
+        </section>
 
+        <div class="divider"></div>
+
+        <section class="section">
+            <div class="section-header">
+                <span class="section-icon">📁</span>
+                <span class="section-title">导出选项</span>
+            </div>
+            
+            <div class="settings-list">
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">导出为 Markdown</span>
+                        <span class="setting-desc">将文章内容转换为 Markdown 格式</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="exportMarkdown" class="toggle-switch" checked>
+                    </label>
+                </div>
+                
+                <div class="setting-item">
+                    <div class="setting-info">
+                        <span class="setting-label">导出为 Word</span>
+                        <span class="setting-desc">将文章内容转换为 Word 格式</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="exportWord" class="toggle-switch">
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <div class="settings-actions">
+            <button class="btn btn-secondary" id="previewButton">预览</button>
+            <button class="btn btn-primary" id="exportButton">导出</button>
+        </div>
+
+        <footer class="footer">
+            <p class="footer-text">
+                文章复制工具 v1.1.0 | 
+                <a href="#" class="footer-link">使用帮助</a> | 
+                <a href="#" class="footer-link">反馈问题</a>
+            </p>
+        </footer>
+    </div>
+
+    <!-- 预览模态框 -->
+    <div id="previewModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+        <div class="modal-content" style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; border-radius: 8px;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e9ecef;">
+                <h2 style="font-size: 16px; font-weight: 600; color: #2c3e50;">Markdown 预览</h2>
+                <span class="close" style="color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+            </div>
+            <div class="modal-body">
+                <pre id="previewContent" style="background-color: #f8f9fa; padding: 16px; border-radius: 6px; white-space: pre-wrap; font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.5;"></pre>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; margin-top: 16px; padding-top: 8px; border-top: 1px solid #e9ecef;">
+                <button id="closePreview" class="btn btn-secondary" style="margin-right: 8px;">关闭</button>
+                <button id="downloadMd" class="btn btn-primary">下载 .md 文件</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
-
-
-
-
