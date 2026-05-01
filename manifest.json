@@ -1,77 +1,89 @@
 {
-  "manifest_version": 2,
-  "name": "文章复制工具",
-  "version": "1.1.0",
-  "description": "文章内容提取与AI智能摘要 - 支持CSDN、博客园、掘金、简书等平台，纯本地运行，保护隐私安全",
+  "manifest_version": 3,
+  "name": "Smart Article Extractor",
+  "version": "3.1.0",
+  "description": "AI-powered intelligent article extraction and conversion tool with advanced parsing, content enhancement, and multi-format export",
   "icons": {
-    "16": "./img/icon.png",
-    "48": "./img/icon.png",
-    "128": "./img/icon.png"
+    "16": "img/icon.png",
+    "32": "img/icon.png",
+    "48": "img/icon.png",
+    "128": "img/icon.png"
   },
-  "browser_action": {
-    "default_icon": "./img/icon.png",
-    "default_title": "文章复制工具 - AI智能摘要",
-    "default_popup": "./html/index.html"
-  },
-  "web_accessible_resources": [
-    "js/utils/logger.js",
-    "js/utils/content-enhancer.js",
-    "js/ai/summarizer.js",
-    "js/export/export-manager.js",
-    "js/baseJs/jquery-2.2.1.js",
-    "js/baseJs/turndown.js",
-    "js/baseJs/FileSaver.js",
-    "js/baseJs/jquery.wordexport.js",
-    "js/export/csdn.js",
-    "js/export/juejin.js",
-    "js/export/bokeyuan.js",
-    "js/export/jianshu.js",
-    "js/export/dgstack.js",
-    "js/export/bdwk.js",
-    "js/export/zhihu.js",
-    "js/export/oschina.js",
-    "js/export/local.js",
-    "js/export/local1.js",
-    "js/contentJs/csdn.js",
-    "js/contentJs/juejin.js",
-    "js/contentJs/bokeyuan.js",
-    "js/contentJs/jianshu.js",
-    "js/contentJs/dgstack.js",
-    "js/contentJs/bdwk.js",
-    "js/contentJs/local.js",
-    "html/test.html"
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "downloads",
+    "tabs",
+    "contextMenus",
+    "clipboardWrite",
+    "alarms"
   ],
+  "host_permissions": [
+    "https://blog.csdn.net/*",
+    "https://juejin.cn/*",
+    "https://juejin.im/*",
+    "https://www.cnblogs.com/*",
+    "https://www.jianshu.com/*",
+    "https://zhuanlan.zhihu.com/*",
+    "https://www.zhihu.com/*",
+    "https://segmentfault.com/*",
+    "https://www.dgstack.cn/*",
+    "https://wenku.baidu.com/*",
+    "<all_urls>"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "img/icon.png",
+      "32": "img/icon.png"
+    },
+    "default_title": "Smart Article Extractor",
+    "default_popup": "html/index.html"
+  },
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
   "content_scripts": [
     {
-      "matches": [
-        "https://blog.csdn.net/*",
-        "https://juejin.im/post/*",
-        "https://juejin.cn/post/*",
-        "https://www.cnblogs.com/*",
-        "https://www.jianshu.com/*",
-        "https://www.dgstack.cn/*",
-        "https://wenku.baidu.com/view/*",
-        // 知乎专栏
-        "https://zhuanlan.zhihu.com/*",
-        // 知乎文章
-        "https://www.zhihu.com/question/*",
-        "https://www.zhihu.com/answer/*",
-        // 开源中国
-        "https://www.oschina.net/*",
-        // 测试
-        "http://127.0.0.1:8000/*"
-      ],
+      "matches": ["<all_urls>"],
       "js": [
-        "./js/contentJs/content.js"
+        "js/baseJs/jquery-2.2.1.js",
+        "js/baseJs/turndown.js",
+        "core/constants.js",
+        "core/parser/ai-parser.js",
+        "core/parser/content-enhancer.js",
+        "core/platform/custom-rules-manager.js",
+        "core/platform/template-engine.js",
+        "core/platform/export-manager.js",
+        "core/platform/batch-manager.js",
+        "core/platform/error-handler.js",
+        "content-scripts/index.js"
       ],
       "css": [
-        "./css/bootstrap.min.css"
+        "css/index.css",
+        "content-scripts/styles.css"
       ],
       "run_at": "document_end"
     }
   ],
-  "permissions": [
-    "storage",
-    "activeTab"
+  "options_page": "html/index.html",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "js/baseJs/*.js",
+        "core/*.js",
+        "core/parser/*.js",
+        "core/platform/*.js",
+        "content-scripts/*.js",
+        "html/*.html",
+        "css/*.css",
+        "img/*.png",
+        "img/*.jpg",
+        "img/*.gif",
+        "img/*.svg"
+      ],
+      "matches": ["<all_urls>"]
+    }
   ]
 }
