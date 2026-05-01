@@ -17,7 +17,7 @@ class AIParser {
 
   async parse(doc, url, customRules = null) {
     const platform = this.detectPlatform(url);
-    const result = {
+    let result = {
       platform: platform,
       url: url,
       title: '',
