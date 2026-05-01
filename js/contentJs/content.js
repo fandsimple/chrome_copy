@@ -100,54 +100,21 @@
             document.head.appendChild(temp);
             scriptLoadPromises[jsPath] = new Promise(function(r) { r(temp); });
         });
-    }
-
-    function loadScriptsInOrder(scripts) {
-        _log.info('Loading scripts in order...');
-        
-        return scripts.reduce(function(promise, script) {
-            return promise.then(function() {
-                return injectScript(script);
-            });
-        }, Promise.resolve());
-    }
-
-    function detectPlatform() {
-        const url = document.URL;
-        _log.debug('Detecting platform from URL:', url);
-        
-        if (url.indexOf('csdn.net') >= 0) {
-            _log.info('Platform detected: CSDN');
-            return 'csdn';
-        }
-        if (url.indexOf('juejin.im') >= 0 || url.indexOf('juejin.cn') >= 0) {
-            _log.info('Platform detected: 掘金');
-            return 'juejin';
-        }
-        if (url.indexOf('cnblogs.com') >= 0) {
-            _log.info('Platform detected: 博客园');
-            return 'cnblogs';
-        }
-        if (url.indexOf('jianshu.com') >= 0) {
-            _log.info('Platform detected: 简书');
-            return 'jianshu';
-        }
-        if (url.indexOf('dgstack.cn') >= 0) {
-            _log.info('Platform detected: 逗哥架构');
-            return 'dgstack';
-        }
-        if (url.indexOf('wenku.baidu.com') >= 0) {
-            _log.info('Platform detected: 百度文库');
-            return 'bdwk';
-        }
-        if (url.indexOf('127.0.0.1:8000/') >= 0) {
-            _log.info('Platform detected: Local (127.0.0.1:8000)');
-            return 'local';
-        }
-        
-        _log.warn('Platform not detected for URL:', url);
-        return 'unknown';
-    }
+    } else if (document.URL.indexOf('zhihu.com') >= 0) { // 知乎
+        chrome.storage.sync.get({zhihuFlag: 'off'}, function (data) {
+            if (data.zhihuFlag == 'on') {
+                injectCustomJs("js/export/zhihu.js"); // 向页面中注入js文件，可以进行回调
+                zhihu();
+            }
+        });
+    } else if (document.URL.indexOf('oschina.net') >= 0) { // 开源中国
+        chrome.storage.sync.get({oschinaFlag: 'off'}, function (data) {
+            if (data.oschinaFlag == 'on') {
+                injectCustomJs("js/export/oschina.js"); // 向页面中注入js文件，可以进行回调
+                oschina();
+            }
+        });
+    } else if (document.URL.indexOf('127.0.0.1:8000/') >= 0) { // 测试
 
     const platformConfig = {
         csdn: {
@@ -318,60 +285,94 @@
                 }
             });
     }
+}
 
-    window.addEventListener('unhandledrejection', function(event) {
-        _log.error('Unhandled Promise Rejection detected!');
-        _log.error('Event:', event);
-        
-        let reason = event.reason;
-        if (reason instanceof Error) {
-            _log.error('Error message:', reason.message);
-            _log.error('Error stack:', reason.stack);
-            _log.error('Error name:', reason.name);
-        } else if (typeof reason === 'object') {
-            try {
-                _log.error('Reason object:', JSON.stringify(reason));
-            } catch (e) {
-                _log.error('Reason object (cannot stringify):', reason);
-            }
-        } else {
-            _log.error('Reason:', String(reason));
-        }
-        
-        event.preventDefault();
-    });
+function injectCustomJs(jsPath) { // 注入函数
+    jsPath = jsPath || 'js/export/csdn.js';
+    var temp = document.createElement('script');
+    temp.setAttribute('type', 'text/javascript');
+    temp.src = chrome.extension.getURL(jsPath);
+    console.log(temp.src, '路径');
+    // temp.onload = function () {
+    //     // 放在页面不好看，执行完后移除掉
+    //     this.parentNode.removeChild(this);
+    // };
+    document.head.appendChild(temp);
+}
 
-    window.onerror = function(message, source, lineno, colno, error) {
-        _log.error('Global error caught!');
-        _log.error('Message:', message);
-        _log.error('Source:', source);
-        _log.error('Line:', lineno);
-        _log.error('Column:', colno);
-        
-        if (error) {
-            _log.error('Error object:', error);
-            _log.error('Error stack:', error.stack);
-        }
-        
-        return false;
-    };
+function importLib() { // 引入三方库
+    injectCustomJs('js/baseJs/jquery-2.2.1.js'); // jquery
+    injectCustomJs('js/baseJs/turndown.js'); // html to markdown
+    injectCustomJs('js/baseJs/FileSaver.js'); // html to word
+    injectCustomJs('js/baseJs/jquery.wordexport.js'); // html to word
+}
 
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-        _log.info('Document already ready, starting immediately');
-        setTimeout(main, 0);
-    } else {
-        _log.info('Waiting for document to load...');
-        document.addEventListener('DOMContentLoaded', function() {
-            _log.info('DOMContentLoaded fired');
-            main();
-        });
-        
-        window.addEventListener('load', function() {
-            _log.info('Window load fired');
-            if (!loadedScripts.has(SCRIPT_ORDER[0])) {
-                main();
-            }
-        });
+window.onload = main(); // 入口函数
+
+// 消息监听器
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (request.action === 'previewArticle') {
+        // 获取当前页面的文章内容并转换为 Markdown
+        var markdown = getArticleMarkdown();
+        sendResponse({markdown: markdown});
+    } else if (request.action === 'exportArticle') {
+        // 执行导出操作
+        exportArticle();
+        sendResponse({success: true});
+    } else if (request.action === 'downloadMarkdown') {
+        // 下载 .md 文件
+        downloadMarkdownFile();
+        sendResponse({success: true});
     }
+});
 
-})();
+// 获取文章 Markdown 内容
+function getArticleMarkdown() {
+    var title = '';
+    var content = '';
+    
+    if (document.URL.indexOf('csdn.net') >= 0) {
+        title = '# ' + $('div.article-title-box h1').text();
+        content = $('div#article_content').html();
+    } else if (document.URL.indexOf('juejin.im') >= 0) {
+        title = '# ' + $('.article-title').text();
+        content = $('.article-content').html();
+    } else if (document.URL.indexOf('cnblogs.com') >= 0) {
+        title = '# ' + $('.postTitle').text();
+        content = $('.postBody').html();
+    } else if (document.URL.indexOf('jianshu.com') >= 0) {
+        title = '# ' + $('.title').text();
+        content = $('.show-content').html();
+    } else if (document.URL.indexOf('dgstack.cn') >= 0) {
+        title = '# ' + $('.article-header h1').text();
+        content = $('.article-content').html();
+    } else if (document.URL.indexOf('wenku.baidu.com') >= 0) {
+        title = '# ' + $('.doc-title').text();
+        content = $('.reader-page-content').html();
+    } else if (document.URL.indexOf('zhihu.com') >= 0) {
+        if (document.URL.indexOf('zhuanlan.zhihu.com') >= 0) {
+            title = '# ' + $('h1.Post-Title').text();
+            content = $('div.Post-RichTextContainer').html();
+        } else if (document.URL.indexOf('/question/') >= 0) {
+            title = '# ' + $('h1.QuestionHeader-title').text();
+            content = $('div.QuestionAnswer-content').html();
+        } else if (document.URL.indexOf('/answer/') >= 0) {
+            title = '# ' + $('h1.QuestionHeader-title').text();
+            content = $('div.AnswerItem-content').html();
+        }
+    } else if (document.URL.indexOf('oschina.net') >= 0) {
+        title = '# ' + $('.article-header h1').text();
+        content = $('.article-content').html();
+    }
+    
+    var turndownService = new window.TurndownService();
+    var markdown = turndownService.turndown(content);
+    return title + '\n' + markdown;
+}
+
+// 下载 .md 文件
+function downloadMarkdownFile() {
+    var markdown = getArticleMarkdown();
+    var blob = new Blob([markdown], {type: 'text/markdown;charset=utf-8;'});
+    saveAs(blob, 'article.md');
+}
